@@ -30,7 +30,12 @@ abstract class FindInSetRelation extends HasOneOrMany {
             if( is_array( $parentKey ) ){
                 $parentKey = implode(',', $parentKey );
             }
-            $this->query->whereRaw(  'FIND_IN_SET(' . $this->foreignKey . ',"' . $parentKey .'")');
+            $parentKey = trim($parentKey, ',');
+            if ($this->isCommaSeparatedIds($parentKey)) {
+                $this->query->whereRaw(  'FIND_IN_SET(' . $this->foreignKey . ',"' . $parentKey .'")')->orderByRaw('FIELD(' . $this->foreignKey . ', ' . $parentKey . ')');
+                }else{
+					return;
+					}
         }
     }
 
@@ -49,7 +54,13 @@ abstract class FindInSetRelation extends HasOneOrMany {
             }
         }
         // $this->query->addSelect('*', DB::raw('"' . $this->getKeys($models, $this->localKey)[0] . '" as __id') );
-        $this->query->whereRaw( 'FIND_IN_SET(' . $this->foreignKey . ', "' . implode( ',', $localKeys ) .'" )');
+        $orderByValues = implode(',', $localKeys);
+        $orderByValues = trim($orderByValues, ',');
+        if ($this->isCommaSeparatedIds($orderByValues)) {
+            $this->query->whereRaw( 'FIND_IN_SET(' . $this->foreignKey . ', "' . $orderByValues .'" )')->orderByRaw('FIELD(' . $this->foreignKey . ', ' . $orderByValues . ')');
+            }else{
+					return;
+					}
     }
 
     /**
@@ -118,4 +129,8 @@ abstract class FindInSetRelation extends HasOneOrMany {
             'FIND_IN_SET('.$this->getQualifiedForeignKeyName().', ' . $this->parent->qualifyColumn( $this->ownerKey ) . ')'
         );
     }
+    public function isCommaSeparatedIds($string)
+	{
+    	return preg_match('/^\d+(,\d+)*$/', $string);
+	}
 }
